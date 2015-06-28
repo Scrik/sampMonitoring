@@ -5,11 +5,10 @@ $this->title = 'Мои сервера';
 use yii\helpers\Html;
 use yii\grid\GridView;
 use yii\data\ActiveDataProvider;
-use app\models\Servers;
 use yii\grid\SerialColumn;
 
 $dataProvider = new ActiveDataProvider([
-    'query' => Servers::find()->where(['status' => 1])->orderBy('rating DESC'),
+    'query' => $servers,
     'pagination' => [
         'pageSize' => 25,
     ],

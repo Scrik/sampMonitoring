@@ -3,9 +3,8 @@
 namespace app\models;
 
 use Yii;
-use yii\db\ActiveRecord;
 
-class Activity extends ActiveRecord {
+class Activity extends \yii\db\ActiveRecord {
 
     public static function tableName() {
         return 'activity';

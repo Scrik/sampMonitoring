@@ -26,12 +26,11 @@ class AdminController extends Controller {
     }
 
     public function actionIndex() {
-        return $this->render('index', ['servers' => Servers::find()->all()]);
+        return $this->render('index');
     }
 
     public function actionDelete($id) {
-        $server = Servers::findOne($id);
-        $server->delete();
+        Servers::findOne($id)->delete();
         return $this->goBack();
     }
 

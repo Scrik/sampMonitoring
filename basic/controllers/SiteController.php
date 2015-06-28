@@ -5,8 +5,7 @@ namespace app\controllers;
 use Yii;
 use yii\web\Controller;
 use app\models\Servers;
-use app\models\LoginForm;
-use app\models\RegForm;
+use app\models\UserForm;
 use app\models\ServerForm;
 use yii\filters\AccessControl;
 use app\models\Activity;
@@ -47,7 +46,7 @@ class SiteController extends Controller {
         return $this->render('index');
     }
 
-    public function actionUpdate() {
+    public function actionUpdate($redirect = true) {
         $model = new Servers();
         $servers = Servers::find()->all();
         foreach ($servers as $server) {
@@ -58,11 +57,10 @@ class SiteController extends Controller {
             $server_sql->hostname = $serverInfo['name'];
             $server_sql->players = $serverInfo['players'];
             $server_sql->maxplayers = $serverInfo['playersmax'];
-            $server_sql->gamemode = $serverInfo['gamemode'];
-            $server_sql->map = $serverInfo['map'];
             $server_sql->status = 1;
             $server_sql->save();
-            $this->redirect('/admin');
+            if ($redirect)
+                $this->redirect('/admin');
         }
     }
 
@@ -87,27 +85,35 @@ class SiteController extends Controller {
     }
 
     public function actionAddserver() {
-        $model = new ServerForm;
-        if ($model->load(Yii::$app->request->post()) && $model->add()) {
+        $modelForm = new ServerForm();
+        if ($modelForm->load(Yii::$app->request->post()) && $modelForm->validate()) {
+            $modelDb = new Servers();
+            $modelDb->attributes = [
+                'ip' => $modelForm->ip,
+                'port' => $modelForm->port,
+                'owner' => Yii::$app->user->identity->id,
+                'rating' => 0
+            ];
+            $modelDb->save();
+            $this->actionUpdate(false);
             return $this->goHome();
         } else {
-            return $this->render('add_server', ['model' => $model]);
+            return $this->render('add_server', ['model' => $modelForm]);
         }
     }
 
     public function actionDelete($id) {
-        $server = Servers::find()->where(['id' => $id, 'owner' => Yii::$app->user->identity->id])->one();
-        $server->delete();
+        Servers::find()->where(['id' => $id, 'owner' => Yii::$app->user->identity->id])->one()->delete();
         return $this->goBack();
     }
 
     public function actionMyserver() {
-        return $this->render('my', ['servers' => Servers::find()->where(['owner' => Yii::$app->user->identity->id])->all()]);
+        return $this->render('my', ['servers' => Servers::find()->where(['owner' => Yii::$app->user->identity->id, 'status' => 1])->orderBy('rating DESC')]);
     }
 
     public function actionLogin() {
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
+        $model = new UserForm();
+        if ($model->load(Yii::$app->request->post()) && $model->validate() && $model->login()) {
             return $this->goHome();
         } else {
             return $this->render('login', ['model' => $model]);
@@ -115,8 +121,8 @@ class SiteController extends Controller {
     }
 
     public function actionReg() {
-        $model = new RegForm();
-        if ($model->load(Yii::$app->request->post()) && $model->register()) {
+        $model = new UserForm();
+        if ($model->load(Yii::$app->request->post()) && $model->validate() && $model->register()) {
             return $this->goHome();
         } else {
             return $this->render('reg', ['model' => $model]);
