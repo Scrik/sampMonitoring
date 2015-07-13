@@ -10,7 +10,6 @@ class UserForm extends Model {
 
     public $login;
     public $password;
-    private $_user = false;
 
     public function rules() {
         return [
@@ -24,20 +23,11 @@ class UserForm extends Model {
         $user->login = $this->login;
         $user->password = $this->password;
         $user->save();
-        Yii::$app->authManager->assign(Yii::$app->authManager->getRole('user'), $user->getId());
-        return true;
+        return Yii::$app->authManager->assign(Yii::$app->authManager->getRole('user'), $user->getId());
     }
 
     public function login() {
-        return Yii::$app->user->login($this->getUser(), 0);
-    }
-
-    public function getUser() {
-        if ($this->_user === false) {
-            $this->_user = User::findByUsername($this->login);
-        }
-
-        return $this->_user;
+        return Yii::$app->user->login(User::findByUsername($this->login));
     }
 
 }

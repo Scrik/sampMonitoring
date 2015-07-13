@@ -4,21 +4,12 @@ namespace app\models;
 
 class Servers extends \yii\db\ActiveRecord {
 
-    public $server = [
-        'ip' => '', 'port' => null, 'status' => 0, 'name' => '', 'players' => 0, 'playersmax' => 0,
-    ];
-    public $server_ip;
-    public $server_port;
-
     public static function tableName() {
         return 'servers';
     }
 
-    public function getInfo() {
-        $this->server['ip'] = $this->server_ip;
-        $this->server['port'] = $this->server_port;
-
-        $socket = fsockopen('udp://' . $this->server['ip'], $this->server['port'], $errno, $errstr, 1);
+    public function getInfo($ip, $port) {
+        $socket = fsockopen('udp://' . $ip, $port, $errno, $errstr, 1);
 
         if (!$socket)
             return false;
@@ -31,13 +22,13 @@ class Servers extends \yii\db\ActiveRecord {
         $buffer = fread($socket, 4096);
         $buffer = substr($buffer, 12);
 
-        $this->server['players'] = intval($this->sunpack($this->cutByte($buffer, 2), "S"));
-        $this->server['playersmax'] = intval($this->sunpack($this->cutByte($buffer, 2), "S"));
-        $this->server['name'] = $this->cutPascal($buffer, 4);
+        $server['players'] = intval(self::sunpack(self::cutByte($buffer, 2), "S"));
+        $server['playersmax'] = intval(self::sunpack(self::cutByte($buffer, 2), "S"));
+        $server['name'] = self::cutPascal($buffer, 4);
 
         fclose($socket);
 
-        return $this->server;
+        return $server;
     }
 
     function sunpack($str, $format) {

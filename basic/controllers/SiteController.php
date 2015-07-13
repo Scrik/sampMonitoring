@@ -32,11 +32,6 @@ class SiteController extends Controller {
                         'allow' => true,
                         'roles' => ['@'],
                     ],
-                    [
-                        'actions' => ['update'],
-                        'allow' => true,
-                        'roles' => ['admin'],
-                    ],
                 ],
             ],
         ];
@@ -47,18 +42,14 @@ class SiteController extends Controller {
     }
 
     public function actionUpdate($redirect = true) {
-        $model = new Servers();
-        $servers = Servers::find()->all();
-        foreach ($servers as $server) {
-            $model->server_ip = $server->ip;
-            $model->server_port = $server->port;
-            $server_sql = Servers::findOne($server->id);
-            $serverInfo = $model->getinfo();
-            $server_sql->hostname = $serverInfo['name'];
-            $server_sql->players = $serverInfo['players'];
-            $server_sql->maxplayers = $serverInfo['playersmax'];
-            $server_sql->status = 1;
-            $server_sql->save();
+        foreach (Servers::find()->all() as $server) {
+            $info = Servers::getInfo($server->ip, $server->port);
+            $query = Servers::findOne($server->id);
+            $query->hostname = $info['name'];
+            $query->players = $info['players'];
+            $query->maxplayers = $info['playersmax'];
+            $query->status = 1;
+            $query->save();
             if ($redirect)
                 $this->redirect('/admin');
         }
@@ -66,16 +57,14 @@ class SiteController extends Controller {
 
     public function actionUp($id) {
         if (Activity::rating_change($id)) {
-            $rating = Servers::findOne($id);
-            $rating->updateCounters(['rating' => 1]);
+            Servers::findOne($id)->updateCounters(['rating' => 1]);
         }
         return $this->render('index');
     }
 
     public function actionDown($id) {
         if (Activity::rating_change($id)) {
-            $rating = Servers::findOne($id);
-            $rating->updateCounters(['rating' => -1]);
+            Servers::findOne($id)->updateCounters(['rating' => -1]);
         }
         return $this->render('index');
     }
@@ -85,30 +74,28 @@ class SiteController extends Controller {
     }
 
     public function actionAddserver() {
-        $modelForm = new ServerForm();
-        if ($modelForm->load(Yii::$app->request->post()) && $modelForm->validate()) {
+        $form = new ServerForm();
+        if ($form->load(Yii::$app->request->post()) && $form->validate()) {
             $modelDb = new Servers();
-            $modelDb->attributes = [
-                'ip' => $modelForm->ip,
-                'port' => $modelForm->port,
-                'owner' => Yii::$app->user->identity->id,
-                'rating' => 0
-            ];
+            $modelDb->ip = $form->ip;
+            $modelDb->port = $form->port;
+            $modelDb->owner = Yii::$app->user->identity->id;
+            $modelDb->rating = 0;
             $modelDb->save();
             $this->actionUpdate(false);
             return $this->goHome();
         } else {
-            return $this->render('add_server', ['model' => $modelForm]);
+            return $this->render('add_server', ['model' => $form]);
         }
     }
 
     public function actionDelete($id) {
-        Servers::find()->where(['id' => $id, 'owner' => Yii::$app->user->identity->id])->one()->delete();
+        Servers::findOne(['id' => $id, 'owner' => Yii::$app->user->identity->id])->delete();
         return $this->goBack();
     }
 
     public function actionMyserver() {
-        return $this->render('my', ['servers' => Servers::find()->where(['owner' => Yii::$app->user->identity->id, 'status' => 1])->orderBy('rating DESC')]);
+        return $this->render('my', ['servers' => Servers::find()->where(['owner' => Yii::$app->user->identity->id])->orderBy('rating DESC')]);
     }
 
     public function actionLogin() {

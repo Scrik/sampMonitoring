@@ -16,8 +16,7 @@ class Activity extends \yii\db\ActiveRecord {
             $model->user = Yii::$app->user->id;
             $model->date = Yii::$app->formatter->asDate('now', 'php:Y-m-d');
             $model->server = $id;
-            $model->save();
-            return true;
+            return $model->save();
         }
     }
 
